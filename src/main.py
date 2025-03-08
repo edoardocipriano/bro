@@ -5,11 +5,14 @@ from data_utils import get_dataloaders
 from model import get_model
 from train import train_model
 from evaluate import evaluate_model, save_evaluation_results
+from experiment import Experiment
 import os
 import json
+import argparse
 from datetime import datetime
 
-def main():
+def run_single_training():
+    """Run a single training with default configuration"""
     # Configuration
     config = {
         'batch_size': 32,
@@ -88,6 +91,53 @@ def main():
         print("\nNo test set available for evaluation.")
     
     print(f"\nExperiment completed. Results saved in: {experiment_dir}")
+
+def run_hyperparameter_search():
+    """Run hyperparameter search using the Experiment class"""
+    # Define parameter grid for hyperparameter search
+    param_grid = {
+        'batch_size': [16, 32],
+        'learning_rate': [0.001, 0.0001],
+        'optimizer': ['Adam', 'SGD'],
+        'num_epochs': [15, 25],
+        'dropout_rate': [0.3, 0.5],
+        'num_classes': [9],
+        'optimizer_params': [
+            {},  # Default parameters for Adam
+            {'momentum': 0.9}  # Parameters for SGD
+        ]
+    }
+    
+    # Create and run experiment
+    experiment = Experiment('tumor_classification_hyperparameter_search')
+    results = experiment.run_experiment(param_grid)
+    
+    # Evaluate best model
+    test_results = experiment.evaluate_best_model()
+    
+    print("\nHyperparameter search completed.")
+    print(f"Best configuration: {experiment.best_config}")
+    print(f"Best validation accuracy: {experiment.best_accuracy:.4f}")
+    
+    return experiment
+
+def main():
+    """Main function to run the tumor classification project"""
+    parser = argparse.ArgumentParser(description='Tumor Classification')
+    parser.add_argument('--mode', type=str, default='single', choices=['single', 'hyperparameter_search'],
+                        help='Mode to run: single training or hyperparameter search')
+    args = parser.parse_args()
+    
+    if args.mode == 'single':
+        print("Running single training with default configuration...")
+        run_single_training()
+    else:
+        print("Running hyperparameter search...")
+        experiment = run_hyperparameter_search()
+        
+        # Load best model for further use if needed
+        best_model, best_config = experiment.load_best_model()
+        print(f"Best model loaded from: {experiment.best_model_path}")
 
 if __name__ == "__main__":
     main() 
