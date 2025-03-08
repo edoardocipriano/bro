@@ -86,7 +86,8 @@ class Experiment:
         # Initialize model
         model = get_model(
             num_classes=config.get('num_classes', 2),
-            dropout_rate=config.get('dropout_rate', 0.5)
+            dropout_rate=config.get('dropout_rate', 0.5),
+            model_type=config.get('model_type', 'light')
         )
         
         # Initialize optimizer
@@ -294,7 +295,8 @@ class Experiment:
         # Load best configuration
         model = get_model(
             num_classes=self.best_config.get('num_classes', 2),
-            dropout_rate=self.best_config.get('dropout_rate', 0.5)
+            dropout_rate=self.best_config.get('dropout_rate', 0.5),
+            model_type=self.best_config.get('model_type', 'light')
         )
         
         # Load model weights

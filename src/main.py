@@ -11,7 +11,7 @@ import json
 import argparse
 from datetime import datetime
 
-def run_single_training():
+def run_single_training(model_type='light'):
     """Run a single training with default configuration"""
     # Configuration
     config = {
@@ -21,12 +21,13 @@ def run_single_training():
         'learning_rate': 0.001,
         'num_epochs': 25,
         'dropout_rate': 0.5,
-        'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+        'model_type': model_type
     }
     
     # Create experiment directory
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    experiment_dir = f'experiments/tumor_classification_{timestamp}'
+    experiment_dir = f'experiments/tumor_classification_{model_type}_{timestamp}'
     os.makedirs(experiment_dir, exist_ok=True)
     
     # Save configuration
@@ -41,10 +42,11 @@ def run_single_training():
         num_workers=config['num_workers']
     )
     
-    print("Initializing model...")
+    print(f"Initializing {model_type} model...")
     model = get_model(
         num_classes=config['num_classes'],
-        dropout_rate=config['dropout_rate']
+        dropout_rate=config['dropout_rate'],
+        model_type=config['model_type']
     )
     
     # Define loss function and optimizer
@@ -92,16 +94,17 @@ def run_single_training():
     
     print(f"\nExperiment completed. Results saved in: {experiment_dir}")
 
-def run_hyperparameter_search():
+def run_hyperparameter_search(model_type='light'):
     """Run hyperparameter search using the Experiment class"""
     # Define parameter grid for hyperparameter search
     param_grid = {
         'batch_size': [16, 32],
         'learning_rate': [0.001, 0.0001],
         'optimizer': ['Adam', 'SGD'],
-        'num_epochs': [15, 25],
+        'num_epochs': [15],
         'dropout_rate': [0.3, 0.5],
         'num_classes': [9],
+        'model_type': [model_type],
         'optimizer_params': [
             {},  # Default parameters for Adam
             {'momentum': 0.9}  # Parameters for SGD
@@ -109,7 +112,7 @@ def run_hyperparameter_search():
     }
     
     # Create and run experiment
-    experiment = Experiment('tumor_classification_hyperparameter_search')
+    experiment = Experiment(f'tumor_classification_{model_type}_hyperparameter_search')
     results = experiment.run_experiment(param_grid)
     
     # Evaluate best model
@@ -126,14 +129,16 @@ def main():
     parser = argparse.ArgumentParser(description='Tumor Classification')
     parser.add_argument('--mode', type=str, default='single', choices=['single', 'hyperparameter_search'],
                         help='Mode to run: single training or hyperparameter search')
+    parser.add_argument('--model', type=str, default='light', choices=['original', 'light'],
+                        help='Model type to use: original (larger) or light (faster)')
     args = parser.parse_args()
     
     if args.mode == 'single':
-        print("Running single training with default configuration...")
-        run_single_training()
+        print(f"Running single training with {args.model} model...")
+        run_single_training(model_type=args.model)
     else:
-        print("Running hyperparameter search...")
-        experiment = run_hyperparameter_search()
+        print(f"Running hyperparameter search with {args.model} model...")
+        experiment = run_hyperparameter_search(model_type=args.model)
         
         # Load best model for further use if needed
         best_model, best_config = experiment.load_best_model()
