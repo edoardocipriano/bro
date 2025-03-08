@@ -4,17 +4,25 @@ A convolutional neural network (CNN) for classifying tumor images using PyTorch.
 
 ## Project Structure
 
-- `model.py`: Contains the CNN architecture with BatchNorm and Dropout layers
-- `data_utils.py`: Utilities for loading and preprocessing the tumor dataset
-- `train.py`: Training script with progress bars and visualization
-- `experiment.py`: Experiment class for hyperparameter tuning and model optimization
+- `src/model.py`: Contains the CNN architecture with BatchNorm and Dropout layers
+- `src/data_utils.py`: Utilities for loading and preprocessing the tumor dataset
+- `src/train.py`: Training script with progress bars and visualization
+- `src/evaluate.py`: Evaluation utilities for model assessment and visualization
+- `src/experiment.py`: Experiment class for hyperparameter tuning and model optimization
+- `src/main.py`: Main entry point with CLI for running training and experiments
 
 ## Model Architecture
 
-The CNN model includes:
-- 4 convolutional blocks with BatchNorm and MaxPooling
-- 2 fully connected layers with BatchNorm and Dropout
-- Kaiming initialization for weights
+The project includes two CNN model variants:
+- **Lightweight CNN**: A smaller, faster model with:
+  - Initial pooling to reduce computation
+  - 3 convolutional blocks with BatchNorm and MaxPooling
+  - Global Average Pooling
+  - Single fully connected layer with Dropout
+
+## Dataset
+
+This project uses the "youngp5/tumors" dataset from Hugging Face, which contains tumor images for classification.
 
 ## Installation
 
@@ -29,28 +37,29 @@ pip install -r requirements.txt
 
 Train a single model with default parameters:
 ```bash
-python train.py
+python src/main.py
 ```
 
 Optional arguments:
 - `--batch_size`: Batch size for training (default: 32)
-- `--num_epochs`: Number of training epochs (default: 10)
+- `--num_epochs`: Number of training epochs (default: 25)
 - `--learning_rate`: Initial learning rate (default: 0.001)
 - `--dropout_rate`: Dropout probability (default: 0.5)
+- `--model_type`: Model architecture to use (default: 'light')
 
 ### Hyperparameter Tuning
 
 Run experiments with different hyperparameter configurations:
 
 ```python
-from experiment import Experiment
+from src.experiment import Experiment
 
 # Define hyperparameter grid
 param_grid = {
     'batch_size': [16, 32],
     'learning_rate': [0.001, 0.0001],
     'optimizer': ['Adam', 'SGD'],
-    'num_epochs': [10],
+    'num_epochs': [25],
     'dropout_rate': [0.3, 0.5],
     'optimizer_params': [
         {},  # Default parameters for Adam
@@ -64,11 +73,10 @@ results = experiment.run_experiment(param_grid)
 
 # Load best model
 best_model, best_config = experiment.load_best_model()
+
+# Evaluate best model
+evaluation_results = experiment.evaluate_best_model()
 ```
-
-## Dataset
-
-This project uses the "youngp5/tumors" dataset from Hugging Face, which contains tumor images for binary classification.
 
 ## Experiment Results
 
@@ -95,20 +103,22 @@ experiments/
 - Best model checkpoints
 - Training time
 - Hyperparameter configurations
+- Confusion matrices
+- Classification reports
 
 ### Visualization
 - Training/validation accuracy curves
 - Training/validation loss curves
+- Confusion matrices
 - Saved for each model configuration
 
-## Model Selection
+## Model Evaluation
 
-The experiment framework automatically:
-1. Trains models with different hyperparameter combinations
-2. Tracks performance metrics
-3. Saves the best performing model
-4. Generates comprehensive reports
-5. Provides easy access to the best configuration
+The project includes comprehensive evaluation tools:
+- Classification metrics (precision, recall, F1-score)
+- Confusion matrix visualization
+- Single image prediction functionality
+- Model loading utilities for inference
 
 ## Contributing
 
