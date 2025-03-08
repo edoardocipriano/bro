@@ -22,7 +22,10 @@ def run_single_training(model_type='light'):
         'num_epochs': 25,
         'dropout_rate': 0.5,
         'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-        'model_type': model_type
+        'model_type': model_type,
+        'use_amp': True,  # Enable automatic mixed precision
+        'pin_memory': True,  # Enable pinned memory for faster data transfer
+        'prefetch_factor': 2  # Prefetch factor for DataLoader
     }
     
     # Create experiment directory
@@ -39,7 +42,9 @@ def run_single_training(model_type='light'):
     print("Loading data...")
     train_loader, val_loader, test_loader = get_dataloaders(
         batch_size=config['batch_size'],
-        num_workers=config['num_workers']
+        num_workers=config['num_workers'],
+        pin_memory=config['pin_memory'],
+        prefetch_factor=config['prefetch_factor']
     )
     
     print(f"Initializing {model_type} model...")
@@ -61,7 +66,8 @@ def run_single_training(model_type='light'):
         optimizer=optimizer,
         num_epochs=config['num_epochs'],
         device=config['device'],
-        save_dir=os.path.join(experiment_dir, 'checkpoints')
+        save_dir=os.path.join(experiment_dir, 'checkpoints'),
+        use_amp=config['use_amp']
     )
     
     # Save training history

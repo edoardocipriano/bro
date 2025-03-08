@@ -77,10 +77,12 @@ class Experiment:
                 config_to_save['device'] = str(config_to_save['device'])
             json.dump(config_to_save, f, indent=4)
         
-        # Get dataloaders
+        # Get dataloaders with CUDA optimizations
         train_loader, val_loader, test_loader = get_dataloaders(
             batch_size=config.get('batch_size', 32),
-            num_workers=config.get('num_workers', 4)
+            num_workers=config.get('num_workers', 4),
+            pin_memory=config.get('pin_memory', True),
+            prefetch_factor=config.get('prefetch_factor', 2)
         )
         
         # Initialize model
@@ -113,7 +115,8 @@ class Experiment:
             optimizer=optimizer,
             num_epochs=config.get('num_epochs', 25),
             device=self.device,
-            save_dir=model_dir
+            save_dir=model_dir,
+            use_amp=config.get('use_amp', True)
         )
         
         # Get best validation accuracy

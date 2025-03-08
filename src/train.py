@@ -8,8 +8,9 @@ from tqdm import tqdm
 import time
 import copy
 import os
+from torch.cuda.amp import autocast, GradScaler  # Import for mixed precision training
 
-def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=None, save_dir='checkpoints'):
+def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=None, save_dir='checkpoints', use_amp=True):
     """
     Train the tumor classification model
     
@@ -21,6 +22,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
         num_epochs: Number of epochs to train for
         device: Device to train on (default: None, will use CUDA if available)
         save_dir: Directory to save model checkpoints (default: 'checkpoints')
+        use_amp: Whether to use automatic mixed precision training (default: True)
         
     Returns:
         model: Trained model with best weights
@@ -36,6 +38,9 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
     
     # Move model to device
     model = model.to(device)
+    
+    # Initialize gradient scaler for mixed precision training
+    scaler = GradScaler() if use_amp and device.type == 'cuda' else None
     
     # Initialize history dictionary to track metrics
     history = {
@@ -70,43 +75,56 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
             
             # Iterate over data
             for inputs, labels in dataloader_with_progress:
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+                # Move data to device - use non_blocking for asynchronous transfer
+                inputs = inputs.to(device, non_blocking=True)
+                labels = labels.to(device, non_blocking=True)
                 
                 # Zero the parameter gradients
-                optimizer.zero_grad()
+                optimizer.zero_grad(set_to_none=True)  # More efficient than setting to zero
                 
                 # Forward pass
                 # Track history only in train phase
                 with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs)
+                    # Use mixed precision for forward pass in training
+                    with autocast(enabled=use_amp and device.type == 'cuda' and phase == 'train'):
+                        outputs = model(inputs)
+                        loss = criterion(outputs, labels)
+                    
                     _, preds = torch.max(outputs, 1)
-                    loss = criterion(outputs, labels)
                     
                     # Backward + optimize only in training phase
                     if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
+                        if scaler is not None:
+                            # Use scaler for mixed precision training
+                            scaler.scale(loss).backward()
+                            scaler.step(optimizer)
+                            scaler.update()
+                        else:
+                            loss.backward()
+                            optimizer.step()
                 
-                # Statistics
-                running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(preds == labels.data)
+                # Statistics - use item() to avoid synchronization
+                batch_loss = loss.item() * inputs.size(0)
+                batch_corrects = torch.sum(preds == labels.data).item()
+                
+                running_loss += batch_loss
+                running_corrects += batch_corrects
                 
                 # Update progress bar with current loss
                 dataloader_with_progress.set_postfix(loss=loss.item())
             
             epoch_loss = running_loss / len(dataloaders[phase].dataset)
-            epoch_acc = running_corrects.double() / len(dataloaders[phase].dataset)
+            epoch_acc = running_corrects / len(dataloaders[phase].dataset)
             
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
             
             # Save history
             if phase == 'train':
                 history['train_loss'].append(epoch_loss)
-                history['train_acc'].append(epoch_acc.item())
+                history['train_acc'].append(epoch_acc)
             else:
                 history['val_loss'].append(epoch_loss)
-                history['val_acc'].append(epoch_acc.item())
+                history['val_acc'].append(epoch_acc)
                 
                 # Deep copy the model if best accuracy
                 if epoch_acc > best_acc:
@@ -121,6 +139,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
                         'optimizer_state_dict': optimizer.state_dict(),
                         'val_acc': epoch_acc,
                         'val_loss': epoch_loss,
+                        'scaler': scaler.state_dict() if scaler else None,
                     }, checkpoint_path)
                     print(f"Saved new best model with accuracy: {best_acc:.4f} to {checkpoint_path}")
         
@@ -134,6 +153,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
             'val_loss': history['val_loss'][-1],
             'train_acc': history['train_acc'][-1],
             'val_acc': history['val_acc'][-1],
+            'scaler': scaler.state_dict() if scaler else None,
         }, epoch_checkpoint_path)
         
         print()
@@ -151,6 +171,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
     torch.save({
         'model_state_dict': model.state_dict(),
         'val_acc': best_acc,
+        'scaler': scaler.state_dict() if scaler else None,
     }, final_model_path)
     print(f"Saved final best model to {final_model_path}")
     

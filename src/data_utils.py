@@ -40,13 +40,15 @@ class TumorDataset(Dataset):
         
         return image, label
 
-def get_dataloaders(batch_size=32, num_workers=4):
+def get_dataloaders(batch_size=32, num_workers=4, pin_memory=True, prefetch_factor=2):
     """
     Create PyTorch DataLoaders for train, validation, and test sets
     
     Args:
         batch_size: Batch size for the dataloaders
         num_workers: Number of worker processes for data loading
+        pin_memory: Whether to pin memory in CPU, which can accelerate data transfer to CUDA devices
+        prefetch_factor: Number of batches loaded in advance by each worker
         
     Returns:
         train_loader, val_loader, test_loader
@@ -82,12 +84,16 @@ def get_dataloaders(batch_size=32, num_workers=4):
     if "test" in splits:
         test_dataset = TumorDataset(ds, split="test", transform=val_test_transform)
     
-    # Create dataloaders
+    # Create dataloaders with CUDA optimizations
     train_loader = DataLoader(
         train_dataset, 
         batch_size=batch_size, 
         shuffle=True, 
-        num_workers=num_workers
+        num_workers=num_workers,
+        pin_memory=pin_memory,  # Pin memory for faster data transfer to GPU
+        prefetch_factor=prefetch_factor if num_workers > 0 else None,  # Prefetch batches
+        persistent_workers=num_workers > 0,  # Keep workers alive between epochs
+        drop_last=True  # Drop last incomplete batch for better performance
     )
     
     val_loader = None
@@ -96,7 +102,10 @@ def get_dataloaders(batch_size=32, num_workers=4):
             val_dataset, 
             batch_size=batch_size, 
             shuffle=False, 
-            num_workers=num_workers
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            prefetch_factor=prefetch_factor if num_workers > 0 else None,
+            persistent_workers=num_workers > 0
         )
     
     test_loader = None
@@ -105,7 +114,10 @@ def get_dataloaders(batch_size=32, num_workers=4):
             test_dataset, 
             batch_size=batch_size, 
             shuffle=False, 
-            num_workers=num_workers
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            prefetch_factor=prefetch_factor if num_workers > 0 else None,
+            persistent_workers=num_workers > 0
         )
     
     return train_loader, val_loader, test_loader
