@@ -116,7 +116,7 @@ class Experiment:
             num_epochs=config.get('num_epochs', 25),
             device=self.device,
             save_dir=model_dir,
-            use_amp=config.get('use_amp', True)
+            use_amp=config.get('use_amp', True)  # Using non-deprecated torch.amp for mixed precision
         )
         
         # Get best validation accuracy

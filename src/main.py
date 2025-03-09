@@ -19,7 +19,7 @@ def run_single_training(model_type='light'):
         'num_workers': 4,
         'num_classes': 9,
         'learning_rate': 0.001,
-        'num_epochs': 25,
+        'num_epochs': 15,
         'dropout_rate': 0.5,
         'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         'model_type': model_type,

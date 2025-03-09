@@ -8,7 +8,7 @@ from tqdm import tqdm
 import time
 import copy
 import os
-from torch.cuda.amp import autocast, GradScaler  # Import for mixed precision training
+from torch.amp import autocast, GradScaler  # Import from torch.amp instead of torch.cuda.amp
 
 def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=None, save_dir='checkpoints', use_amp=True):
     """
@@ -40,7 +40,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
     model = model.to(device)
     
     # Initialize gradient scaler for mixed precision training
-    scaler = GradScaler() if use_amp and device.type == 'cuda' else None
+    scaler = GradScaler(device_type=device.type) if use_amp and device.type == 'cuda' else None
     
     # Initialize history dictionary to track metrics
     history = {
@@ -85,8 +85,8 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
                 # Forward pass
                 # Track history only in train phase
                 with torch.set_grad_enabled(phase == 'train'):
-                    # Use mixed precision for forward pass in training
-                    with autocast(enabled=use_amp and device.type == 'cuda' and phase == 'train'):
+                    # Use the non-deprecated version of autocast
+                    with autocast(device_type=device.type, enabled=use_amp and phase == 'train'):
                         outputs = model(inputs)
                         loss = criterion(outputs, labels)
                     
