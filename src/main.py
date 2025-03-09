@@ -23,7 +23,6 @@ def run_single_training(model_type='light'):
         'dropout_rate': 0.5,
         'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         'model_type': model_type,
-        'use_amp': True,  # Enable automatic mixed precision
         'pin_memory': True,  # Enable pinned memory for faster data transfer
         'prefetch_factor': 2  # Prefetch factor for DataLoader
     }
@@ -66,8 +65,7 @@ def run_single_training(model_type='light'):
         optimizer=optimizer,
         num_epochs=config['num_epochs'],
         device=config['device'],
-        save_dir=os.path.join(experiment_dir, 'checkpoints'),
-        use_amp=config['use_amp']
+        save_dir=os.path.join(experiment_dir, 'checkpoints')
     )
     
     # Save training history

@@ -115,8 +115,7 @@ class Experiment:
             optimizer=optimizer,
             num_epochs=config.get('num_epochs', 25),
             device=self.device,
-            save_dir=model_dir,
-            use_amp=config.get('use_amp', True)  # Using non-deprecated torch.amp for mixed precision
+            save_dir=model_dir
         )
         
         # Get best validation accuracy

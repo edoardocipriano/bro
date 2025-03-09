@@ -8,9 +8,8 @@ from tqdm import tqdm
 import time
 import copy
 import os
-from torch.amp import autocast, GradScaler  # Import from torch.amp instead of torch.cuda.amp
 
-def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=None, save_dir='checkpoints', use_amp=True):
+def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=None, save_dir='checkpoints', use_amp=False):
     """
     Train the tumor classification model
     
@@ -22,7 +21,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
         num_epochs: Number of epochs to train for
         device: Device to train on (default: None, will use CUDA if available)
         save_dir: Directory to save model checkpoints (default: 'checkpoints')
-        use_amp: Whether to use automatic mixed precision training (default: True)
+        use_amp: Parameter kept for backward compatibility but not used
         
     Returns:
         model: Trained model with best weights
@@ -38,9 +37,6 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
     
     # Move model to device
     model = model.to(device)
-    
-    # Initialize gradient scaler for mixed precision training
-    scaler = GradScaler(device_type=device.type) if use_amp and device.type == 'cuda' else None
     
     # Initialize history dictionary to track metrics
     history = {
@@ -85,23 +81,16 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
                 # Forward pass
                 # Track history only in train phase
                 with torch.set_grad_enabled(phase == 'train'):
-                    # Use the non-deprecated version of autocast
-                    with autocast(device_type=device.type, enabled=use_amp and phase == 'train'):
-                        outputs = model(inputs)
-                        loss = criterion(outputs, labels)
+                    # Standard forward pass without autocast
+                    outputs = model(inputs)
+                    loss = criterion(outputs, labels)
                     
                     _, preds = torch.max(outputs, 1)
                     
                     # Backward + optimize only in training phase
                     if phase == 'train':
-                        if scaler is not None:
-                            # Use scaler for mixed precision training
-                            scaler.scale(loss).backward()
-                            scaler.step(optimizer)
-                            scaler.update()
-                        else:
-                            loss.backward()
-                            optimizer.step()
+                        loss.backward()
+                        optimizer.step()
                 
                 # Statistics - use item() to avoid synchronization
                 batch_loss = loss.item() * inputs.size(0)
@@ -139,7 +128,6 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
                         'optimizer_state_dict': optimizer.state_dict(),
                         'val_acc': epoch_acc,
                         'val_loss': epoch_loss,
-                        'scaler': scaler.state_dict() if scaler else None,
                     }, checkpoint_path)
                     print(f"Saved new best model with accuracy: {best_acc:.4f} to {checkpoint_path}")
         
@@ -153,7 +141,6 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
             'val_loss': history['val_loss'][-1],
             'train_acc': history['train_acc'][-1],
             'val_acc': history['val_acc'][-1],
-            'scaler': scaler.state_dict() if scaler else None,
         }, epoch_checkpoint_path)
         
         print()
@@ -171,7 +158,6 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, device=
     torch.save({
         'model_state_dict': model.state_dict(),
         'val_acc': best_acc,
-        'scaler': scaler.state_dict() if scaler else None,
     }, final_model_path)
     print(f"Saved final best model to {final_model_path}")
     
