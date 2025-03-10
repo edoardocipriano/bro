@@ -8,8 +8,7 @@ A convolutional neural network (CNN) for classifying tumor images using PyTorch.
 - `src/data_utils.py`: Utilities for loading and preprocessing the tumor dataset
 - `src/train.py`: Training script with progress bars and visualization
 - `src/evaluate.py`: Evaluation utilities for model assessment and visualization
-- `src/experiment.py`: Experiment class for hyperparameter tuning and model optimization
-- `src/main.py`: Main entry point with CLI for running training and experiments
+- `src/main.py`: Main entry point with CLI for running training
 
 ## Model Architecture
 
@@ -33,68 +32,33 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Single Model Training
+### Model Training
 
-Train a single model with default parameters:
+Train a model with specified parameters:
 ```bash
 python src/main.py
 ```
 
 Optional arguments:
 - `--batch_size`: Batch size for training (default: 32)
-- `--num_epochs`: Number of training epochs (default: 25)
+- `--num_epochs`: Number of training epochs (default: 15)
 - `--learning_rate`: Initial learning rate (default: 0.001)
 - `--dropout_rate`: Dropout probability (default: 0.5)
+- `--num_classes`: Number of classes (default: 9)
+- `--num_workers`: Number of data loading workers (default: 4)
 - `--model_type`: Model architecture to use (default: 'light')
 
-### Hyperparameter Tuning
-
-Run experiments with different hyperparameter configurations:
-
-```python
-from src.experiment import Experiment
-
-# Define hyperparameter grid
-param_grid = {
-    'batch_size': [16, 32],
-    'learning_rate': [0.001, 0.0001],
-    'optimizer': ['Adam', 'SGD'],
-    'num_epochs': [25],
-    'dropout_rate': [0.3, 0.5],
-    'optimizer_params': [
-        {},  # Default parameters for Adam
-        {'momentum': 0.9}  # Parameters for SGD
-    ]
-}
-
-# Create and run experiment
-experiment = Experiment('tumor_classification_v1')
-results = experiment.run_experiment(param_grid)
-
-# Load best model
-best_model, best_config = experiment.load_best_model()
-
-# Evaluate best model
-evaluation_results = experiment.evaluate_best_model()
-```
-
-## Experiment Results
-
-The experiment framework generates:
-
-### Directory Structure
+## Results Directory Structure
 ```
 experiments/
-└── experiment_name_timestamp/
-    ├── experiment_results.csv      # All configurations and their results
-    ├── best_config.json           # Best performing configuration
-    ├── model_0/
-    │   ├── config.json            # Model configuration
-    │   ├── training_history.csv   # Training metrics
+└── tumor_classification_[model_type]_[timestamp]/
+    ├── config.json            # Model configuration
+    ├── training_history.json  # Training metrics
+    ├── checkpoints/
     │   ├── best_model_acc_X.pth   # Best checkpoint by accuracy
     │   ├── best_model_final.pth   # Final best model
-    │   └── training_history.png   # Training visualization
-    └── model_N/                   # Results for each configuration
+    │   └── model_epoch_N.pth      # Checkpoint for each epoch
+    └── evaluation/            # Evaluation results (if test set available)
 ```
 
 ### Tracked Metrics
@@ -102,7 +66,6 @@ experiments/
 - Training and validation loss
 - Best model checkpoints
 - Training time
-- Hyperparameter configurations
 - Confusion matrices
 - Classification reports
 
@@ -110,7 +73,6 @@ experiments/
 - Training/validation accuracy curves
 - Training/validation loss curves
 - Confusion matrices
-- Saved for each model configuration
 
 ## Model Evaluation
 

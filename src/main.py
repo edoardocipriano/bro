@@ -5,22 +5,22 @@ from data_utils import get_dataloaders
 from model import get_model
 from train import train_model
 from evaluate import evaluate_model, save_evaluation_results
-from experiment import Experiment
 import os
 import json
 import argparse
 from datetime import datetime
 
-def run_single_training(model_type='light'):
-    """Run a single training with default configuration"""
+def run_training(model_type='light', batch_size=32, num_workers=4, num_classes=9, 
+                learning_rate=0.001, num_epochs=15, dropout_rate=0.5):
+    """Run a single training with the specified configuration"""
     # Configuration
     config = {
-        'batch_size': 32,
-        'num_workers': 4,
-        'num_classes': 9,
-        'learning_rate': 0.001,
-        'num_epochs': 15,
-        'dropout_rate': 0.5,
+        'batch_size': batch_size,
+        'num_workers': num_workers,
+        'num_classes': num_classes,
+        'learning_rate': learning_rate,
+        'num_epochs': num_epochs,
+        'dropout_rate': dropout_rate,
         'device': torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
         'model_type': model_type,
         'pin_memory': True,  # Enable pinned memory for faster data transfer
@@ -96,57 +96,40 @@ def run_single_training(model_type='light'):
     else:
         print("\nNo test set available for evaluation.")
     
-    print(f"\nExperiment completed. Results saved in: {experiment_dir}")
-
-def run_hyperparameter_search(model_type='light'):
-    """Run hyperparameter search using the Experiment class"""
-    # Define parameter grid for hyperparameter search
-    param_grid = {
-        'batch_size': [16, 32],
-        'learning_rate': [0.001, 0.0001],
-        'optimizer': ['Adam', 'SGD'],
-        'num_epochs': [15],
-        'dropout_rate': [0.3, 0.5],
-        'num_classes': [9],
-        'model_type': [model_type],
-        'optimizer_params': [
-            {},  # Default parameters for Adam
-            {'momentum': 0.9}  # Parameters for SGD
-        ]
-    }
+    print(f"\nTraining completed. Results saved in: {experiment_dir}")
     
-    # Create and run experiment
-    experiment = Experiment(f'tumor_classification_{model_type}_hyperparameter_search')
-    results = experiment.run_experiment(param_grid)
-    
-    # Evaluate best model
-    test_results = experiment.evaluate_best_model()
-    
-    print("\nHyperparameter search completed.")
-    print(f"Best configuration: {experiment.best_config}")
-    print(f"Best validation accuracy: {experiment.best_accuracy:.4f}")
-    
-    return experiment
+    return model, history, experiment_dir
 
 def main():
     """Main function to run the tumor classification project"""
     parser = argparse.ArgumentParser(description='Tumor Classification')
-    parser.add_argument('--mode', type=str, default='single', choices=['single', 'hyperparameter_search'],
-                        help='Mode to run: single training or hyperparameter search')
     parser.add_argument('--model', type=str, default='light', choices=['original', 'light'],
                         help='Model type to use: original (larger) or light (faster)')
+    parser.add_argument('--batch_size', type=int, default=32,
+                        help='Batch size for training (default: 32)')
+    parser.add_argument('--num_epochs', type=int, default=15,
+                        help='Number of epochs to train for (default: 15)')
+    parser.add_argument('--learning_rate', type=float, default=0.001,
+                        help='Learning rate (default: 0.001)')
+    parser.add_argument('--dropout_rate', type=float, default=0.5,
+                        help='Dropout rate (default: 0.5)')
+    parser.add_argument('--num_classes', type=int, default=9,
+                        help='Number of classes (default: 9)')
+    parser.add_argument('--num_workers', type=int, default=4,
+                        help='Number of data loading workers (default: 4)')
+    
     args = parser.parse_args()
     
-    if args.mode == 'single':
-        print(f"Running single training with {args.model} model...")
-        run_single_training(model_type=args.model)
-    else:
-        print(f"Running hyperparameter search with {args.model} model...")
-        experiment = run_hyperparameter_search(model_type=args.model)
-        
-        # Load best model for further use if needed
-        best_model, best_config = experiment.load_best_model()
-        print(f"Best model loaded from: {experiment.best_model_path}")
+    print(f"Running training with {args.model} model...")
+    run_training(
+        model_type=args.model,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        num_classes=args.num_classes,
+        learning_rate=args.learning_rate,
+        num_epochs=args.num_epochs,
+        dropout_rate=args.dropout_rate
+    )
 
 if __name__ == "__main__":
     main() 
