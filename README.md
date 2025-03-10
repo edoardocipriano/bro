@@ -1,91 +1,88 @@
-# Tumor Classification CNN
+# Tumor Classification with CNN
 
-A convolutional neural network (CNN) for classifying tumor images using PyTorch.
+This project implements a Convolutional Neural Network (CNN) for classifying tumor images using PyTorch.
 
 ## Project Structure
 
-- `src/model.py`: Contains the CNN architecture with BatchNorm and Dropout layers
-- `src/data_utils.py`: Utilities for loading and preprocessing the tumor dataset
-- `src/train.py`: Training script with progress bars and visualization
-- `src/evaluate.py`: Evaluation utilities for model assessment and visualization
-- `src/main.py`: Main entry point with CLI for running training
+```
+.
+├── src/
+│   ├── model.py         # CNN model architecture and training functions
+│   ├── data_utils.py    # Dataset and data loading utilities
+│   └── main.py          # Main script to run training
+├── checkpoints/         # Directory for saved models
+└── README.md            # This file
+```
 
-## Model Architecture
+## Requirements
 
-The project includes two CNN model variants:
-- **Lightweight CNN**: A smaller, faster model with:
-  - Initial pooling to reduce computation
-  - 3 convolutional blocks with BatchNorm and MaxPooling
-  - Global Average Pooling
-  - Single fully connected layer with Dropout
+- Python 3.8+
+- PyTorch 1.8+
+- torchvision
+- datasets (Hugging Face)
+- tqdm
+- matplotlib
+- numpy
+- Pillow
+
+You can install the required packages using:
+
+```bash
+pip install torch torchvision datasets tqdm matplotlib numpy pillow
+```
 
 ## Dataset
 
-This project uses the "youngp5/tumors" dataset from Hugging Face, which contains tumor images for classification.
+The project uses the "youngp5/tumors" dataset from Hugging Face, which contains tumor images for binary classification.
 
-## Installation
+## Model
 
-Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+The model is a Convolutional Neural Network (TumorCNN) with the following architecture:
+- 4 convolutional blocks with batch normalization and max pooling
+- Fully connected layers with dropout for regularization
+- Binary classification output (tumor/non-tumor)
 
-## Usage
+## Training
 
-### Model Training
+To train the model with default parameters:
 
-Train a model with specified parameters:
 ```bash
 python src/main.py
 ```
 
-Optional arguments:
+### Command Line Arguments
+
 - `--batch_size`: Batch size for training (default: 32)
-- `--num_epochs`: Number of training epochs (default: 15)
-- `--learning_rate`: Initial learning rate (default: 0.001)
-- `--dropout_rate`: Dropout probability (default: 0.5)
-- `--num_classes`: Number of classes (default: 9)
+- `--num_epochs`: Number of epochs to train (default: 20)
+- `--learning_rate`: Learning rate (default: 0.001)
+- `--weight_decay`: Weight decay (L2 penalty) (default: 1e-4)
+- `--num_classes`: Number of output classes (default: 2)
+- `--dropout_rate`: Dropout rate (default: 0.5)
 - `--num_workers`: Number of data loading workers (default: 4)
-- `--model_type`: Model architecture to use (default: 'light')
+- `--patience`: Early stopping patience (default: 5)
+- `--save_dir`: Directory to save model checkpoints (default: 'checkpoints')
+- `--no_cuda`: Disable CUDA acceleration
 
-## Results Directory Structure
-```
-experiments/
-└── tumor_classification_[model_type]_[timestamp]/
-    ├── config.json            # Model configuration
-    ├── training_history.json  # Training metrics
-    ├── checkpoints/
-    │   ├── best_model_acc_X.pth   # Best checkpoint by accuracy
-    │   ├── best_model_final.pth   # Final best model
-    │   └── model_epoch_N.pth      # Checkpoint for each epoch
-    └── evaluation/            # Evaluation results (if test set available)
+Example with custom parameters:
+
+```bash
+python src/main.py --batch_size 64 --num_epochs 30 --learning_rate 0.0005
 ```
 
-### Tracked Metrics
-- Training and validation accuracy
-- Training and validation loss
-- Best model checkpoints
-- Training time
-- Confusion matrices
-- Classification reports
+## Features
 
-### Visualization
-- Training/validation accuracy curves
-- Training/validation loss curves
-- Confusion matrices
+- CUDA acceleration for faster training
+- Progress bars with tqdm
+- Early stopping to prevent overfitting
+- Learning rate scheduling
+- Training history visualization
+- Model checkpointing
 
-## Model Evaluation
+## Results
 
-The project includes comprehensive evaluation tools:
-- Classification metrics (precision, recall, F1-score)
-- Confusion matrix visualization
-- Single image prediction functionality
-- Model loading utilities for inference
+After training, the model will:
+1. Save the trained model to the checkpoints directory
+2. Generate a plot of training and validation metrics (loss and accuracy)
+3. Evaluate the model on the test set if available
 
-## Contributing
-
-Feel free to submit issues and enhancement requests!
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+The training history plot will be saved as `training_history.png`. 

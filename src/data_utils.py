@@ -4,7 +4,12 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 from PIL import Image
 import torchvision.transforms as transforms
+import os
 
+# Set environment variable to avoid resource tracker warnings
+os.environ["PYTHONWARNINGS"] = "ignore::UserWarning"
+
+# Load dataset once at module level
 ds = load_dataset("youngp5/tumors")
 
 class TumorDataset(Dataset):
@@ -84,6 +89,12 @@ def get_dataloaders(batch_size=32, num_workers=4, pin_memory=True, prefetch_fact
     if "test" in splits:
         test_dataset = TumorDataset(ds, split="test", transform=val_test_transform)
     
+    # Adjust num_workers based on system capabilities
+    # Set to 0 for debugging or if experiencing issues
+    if num_workers > 0 and not torch.cuda.is_available():
+        # Reduce workers for CPU-only training
+        num_workers = min(2, num_workers)
+    
     # Create dataloaders with CUDA optimizations
     train_loader = DataLoader(
         train_dataset, 
@@ -93,7 +104,8 @@ def get_dataloaders(batch_size=32, num_workers=4, pin_memory=True, prefetch_fact
         pin_memory=pin_memory,  # Pin memory for faster data transfer to GPU
         prefetch_factor=prefetch_factor if num_workers > 0 else None,  # Prefetch batches
         persistent_workers=num_workers > 0,  # Keep workers alive between epochs
-        drop_last=True  # Drop last incomplete batch for better performance
+        drop_last=True,  # Drop last incomplete batch for better performance
+        multiprocessing_context='spawn' if num_workers > 0 else None  # Use spawn method for better compatibility
     )
     
     val_loader = None
@@ -105,7 +117,8 @@ def get_dataloaders(batch_size=32, num_workers=4, pin_memory=True, prefetch_fact
             num_workers=num_workers,
             pin_memory=pin_memory,
             prefetch_factor=prefetch_factor if num_workers > 0 else None,
-            persistent_workers=num_workers > 0
+            persistent_workers=num_workers > 0,
+            multiprocessing_context='spawn' if num_workers > 0 else None
         )
     
     test_loader = None
@@ -117,7 +130,8 @@ def get_dataloaders(batch_size=32, num_workers=4, pin_memory=True, prefetch_fact
             num_workers=num_workers,
             pin_memory=pin_memory,
             prefetch_factor=prefetch_factor if num_workers > 0 else None,
-            persistent_workers=num_workers > 0
+            persistent_workers=num_workers > 0,
+            multiprocessing_context='spawn' if num_workers > 0 else None
         )
     
     return train_loader, val_loader, test_loader
