@@ -215,9 +215,21 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             # Update learning rate scheduler if provided
             if scheduler is not None:
                 if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    # Store current learning rate before step
+                    old_lr = optimizer.param_groups[0]['lr']
                     scheduler.step(epoch_val_loss)
+                    # Check if learning rate changed and print the new value
+                    new_lr = optimizer.param_groups[0]['lr']
+                    if new_lr != old_lr:
+                        print(f"Learning rate changed from {old_lr:.6f} to {new_lr:.6f}")
                 else:
+                    # Store current learning rate before step
+                    old_lr = optimizer.param_groups[0]['lr']
                     scheduler.step()
+                    # Check if learning rate changed and print the new value
+                    new_lr = optimizer.param_groups[0]['lr']
+                    if new_lr != old_lr:
+                        print(f"Learning rate changed from {old_lr:.6f} to {new_lr:.6f}")
             
             # Early stopping check
             if epoch_val_loss < best_val_loss:
@@ -236,7 +248,13 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             
             # Update learning rate scheduler if provided
             if scheduler is not None and not isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                # Store current learning rate before step
+                old_lr = optimizer.param_groups[0]['lr']
                 scheduler.step()
+                # Check if learning rate changed and print the new value
+                new_lr = optimizer.param_groups[0]['lr']
+                if new_lr != old_lr:
+                    print(f"Learning rate changed from {old_lr:.6f} to {new_lr:.6f}")
         
         # Record history
         history['train_loss'].append(epoch_train_loss)

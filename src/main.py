@@ -75,8 +75,8 @@ def main():
             optimizer, 
             mode='min', 
             factor=0.1, 
-            patience=3, 
-            verbose=True
+            patience=3
+            # verbose parameter is deprecated, use scheduler.get_last_lr() to access learning rates
         )
         
         # Train the model
